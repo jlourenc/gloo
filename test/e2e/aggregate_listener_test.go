@@ -272,6 +272,7 @@ var _ = Describe("Aggregate Listener", func() {
 				WithRouteActionToUpstream(simpleRouteName, testUpstream.Upstream).
 				WithPrefixMatcher(simpleRouteName, "/east").
 				WithSslConfig(&gloov1.SslConfig{
+					SniDomains: []string{"east.com"},
 					SslSecrets: &gloov1.SslConfig_SecretRef{
 						SecretRef: eastTLSSecret.GetMetadata().Ref(),
 					},
@@ -347,13 +348,13 @@ var _ = Describe("Aggregate Listener", func() {
 				Expect(proxy.GetListeners()[0].GetAggregateListener()).NotTo(BeNil())
 			})
 
-			It("routes requests to all routes on gateway", func() {
+			FIt("routes requests to all routes on gateway", func() {
 				// This test demonstrates the solution with AggregateListeners:
 				//	The West VirtualService is no longer routable with the eastCert.
 				TestUpstreamReturns("east.com", "/east/1", eastCert, http.StatusOK)
+				TestUpstreamReturns("west.com", "/west/1", westCert, http.StatusOK)
 				TestUpstreamReturns("west.com", "/west/1", eastCert, http.StatusNotFound)
 			})
-
 		})
 
 	})
