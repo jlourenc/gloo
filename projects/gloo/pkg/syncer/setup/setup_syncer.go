@@ -453,7 +453,7 @@ func RunGlooWithExtensions(opts bootstrap.Opts, extensions Extensions) error {
 	if opts.Settings.GetGloo().GetDisableKubernetesDestinations() {
 		kubeServiceClient = nil
 	}
-	hybridUsClient, err := upstreams.NewHybridUpstreamClient(upstreamClient, kubeServiceClient, opts.Consul.ConsulWatcher)
+	hybridUsClient, err := upstreams.NewHybridUpstreamClient(upstreamClient, kubeServiceClient, opts.Settings.ConsulDiscovery, opts.Consul.ConsulWatcher)
 	if err != nil {
 		return err
 	}
@@ -570,6 +570,7 @@ func RunGlooWithExtensions(opts bootstrap.Opts, extensions Extensions) error {
 	for _, plug := range discoveryPluginRegistry.GetPlugins() {
 		disc, ok := plug.(discovery.DiscoveryPlugin)
 		if ok {
+			disc.Init(plugins.InitParams{Ctx: watchOpts.Ctx, Settings: opts.Settings})
 			discoveryPlugins = append(discoveryPlugins, disc)
 		}
 	}

@@ -174,6 +174,7 @@ func (d *EndpointDiscovery) StartEds(upstreamsToTrack v1.UpstreamList, opts clie
 	aggregatedErrs := make(chan error)
 	logger := contextutils.LoggerFrom(opts.Ctx)
 	for _, eds := range d.discoveryPlugins {
+
 		endpoints, errs, err := eds.WatchEndpoints(d.writeNamespace, upstreamsToTrack, opts)
 		if err != nil {
 			logger.Errorw("initializing EDS plugin failed", "plugin", reflect.TypeOf(eds).String(), "error", err)

@@ -1,6 +1,7 @@
 package syncer
 
 import (
+	"github.com/solo-io/gloo/projects/gloo/pkg/plugins"
 	"github.com/solo-io/go-utils/contextutils"
 	"github.com/solo-io/go-utils/errutils"
 	"github.com/solo-io/solo-kit/pkg/api/external/kubernetes/namespace"
@@ -71,12 +72,13 @@ func RunUDS(opts bootstrap.Opts) error {
 		emit <- struct{}{}
 	}()
 
-	plugins := registry.Plugins(opts)
+	plugs := registry.Plugins(opts)
 
 	var discoveryPlugins []discovery.DiscoveryPlugin
-	for _, plug := range plugins {
+	for _, plug := range plugs {
 		disc, ok := plug.(discovery.DiscoveryPlugin)
 		if ok {
+			disc.Init(plugins.InitParams{Ctx: watchOpts.Ctx, Settings: opts.Settings})
 			discoveryPlugins = append(discoveryPlugins, disc)
 		}
 	}
