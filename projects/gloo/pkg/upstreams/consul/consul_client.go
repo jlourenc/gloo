@@ -64,6 +64,7 @@ func (c *consul) Service(service, tag string, q *consulapi.QueryOptions) ([]*con
 	if err := c.validateDataCenter(q.Datacenter); err != nil {
 		return nil, nil, err
 	}
+
 	return c.api.Catalog().Service(service, tag, q)
 }
 
