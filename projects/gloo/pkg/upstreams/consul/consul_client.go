@@ -57,6 +57,7 @@ func (c *consul) Services(q *consulapi.QueryOptions) (map[string][]string, *cons
 	if err := c.validateDataCenter(q.Datacenter); err != nil {
 		return nil, nil, err
 	}
+	//TODO: filter by tags
 	return c.api.Catalog().Services(q)
 }
 
@@ -64,7 +65,7 @@ func (c *consul) Service(service, tag string, q *consulapi.QueryOptions) ([]*con
 	if err := c.validateDataCenter(q.Datacenter); err != nil {
 		return nil, nil, err
 	}
-
+	//TODO: filter by tags
 	return c.api.Catalog().Service(service, tag, q)
 }
 
@@ -108,16 +109,16 @@ func (c *consul) validateDataCenter(dataCenter string) error {
 }
 
 // NewConsulServicesQueryOptions returns a QueryOptions configuration that's used for Consul queries to /catalog/services
-func NewConsulServicesQueryOptions(dataCenter string, cm glooConsul.ConsulConsistencyModes, filter string) *consulapi.QueryOptions {
-	return internalConsulQueryOptions(dataCenter, cm, filter, false) // caching not supported by endpoint
+func NewConsulServicesQueryOptions(dataCenter string, cm glooConsul.ConsulConsistencyModes) *consulapi.QueryOptions {
+	return internalConsulQueryOptions(dataCenter, cm, false) // caching not supported by endpoint
 }
 
 // NewConsulCatalogServiceQueryOptions returns a QueryOptions configuration that's used for Consul queries to /catalog/services/:servicename
 func NewConsulCatalogServiceQueryOptions(dataCenter string, cm glooConsul.ConsulConsistencyModes) *consulapi.QueryOptions {
-	return internalConsulQueryOptions(dataCenter, cm, "", false) // TODO(kdorosh) add caching query option and instrument here
+	return internalConsulQueryOptions(dataCenter, cm, false) // TODO(kdorosh) add caching query option and instrument here
 }
 
-func internalConsulQueryOptions(dataCenter string, cm glooConsul.ConsulConsistencyModes, filter string, useCache bool) *consulapi.QueryOptions {
+func internalConsulQueryOptions(dataCenter string, cm glooConsul.ConsulConsistencyModes, useCache bool) *consulapi.QueryOptions {
 	// it can either be requireConsistent or allowStale or neither
 	// choosing the Default Mode will clear both fields
 	requireConsistent := cm == glooConsul.ConsulConsistencyModes_ConsistentMode
@@ -126,7 +127,6 @@ func internalConsulQueryOptions(dataCenter string, cm glooConsul.ConsulConsisten
 		Datacenter:        dataCenter,
 		AllowStale:        allowStale,
 		RequireConsistent: requireConsistent,
-		Filter:            filter,
 		UseCache:          useCache,
 	}
 }

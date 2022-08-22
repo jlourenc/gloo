@@ -23,6 +23,7 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"golang.org/x/sync/errgroup"
+	"k8s.io/utils/strings/slices"
 )
 
 // Starts a watch on the Consul service metadata endpoint for all the services associated with the tracked upstreams.
@@ -50,7 +51,6 @@ func (p *plugin) WatchEndpoints(writeNamespace string, upstreamsToTrack v1.Upstr
 	serviceMetaChan, servicesWatchErrChan := p.client.WatchServices(
 		opts.Ctx,
 		dataCenters,
-		p.consulUpstreamDiscoverySettings.GetServiceFilter().GetValue(),
 		p.consulUpstreamDiscoverySettings.GetConsistencyMode(),
 	)
 
@@ -92,7 +92,7 @@ func (p *plugin) WatchEndpoints(writeNamespace string, upstreamsToTrack v1.Upstr
 
 				// Here is where the specs are produced; each resulting spec is a grouping of serviceInstances (aka endpoints)
 				// associated with a single consul service on one datacenter.
-				specs := refreshSpecs(opts.Ctx, p.client, serviceMeta, errChan, trackedServiceToUpstreams)
+				specs := refreshSpecs(opts.Ctx, p.client, p.consulUpstreamDiscoverySettings, serviceMeta, errChan, trackedServiceToUpstreams)
 				endpoints := buildEndpointsFromSpecs(opts.Ctx, writeNamespace, p.resolver, specs, trackedServiceToUpstreams)
 
 				fmt.Println("-------------------------------")
@@ -140,7 +140,7 @@ func (p *plugin) WatchEndpoints(writeNamespace string, upstreamsToTrack v1.Upstr
 
 // For each service AND data center combination, return a CatalogService that contains a list of all service instances
 // belonging to that service within that datacenter.
-func refreshSpecs(ctx context.Context, client consul.ConsulWatcher, serviceMeta []*consul.ServiceMeta, errChan chan error, serviceToUpstream map[string][]*v1.Upstream) []*consulapi.CatalogService {
+func refreshSpecs(ctx context.Context, client consul.ConsulWatcher, consulUpstreamDiscoverySettings *v1.Settings_ConsulUpstreamDiscoveryConfiguration, serviceMeta []*consul.ServiceMeta, errChan chan error, serviceToUpstream map[string][]*v1.Upstream) []*consulapi.CatalogService {
 	logger := contextutils.LoggerFrom(contextutils.WithLogger(ctx, "consul_eds"))
 	specs := newSpecCollector()
 
@@ -180,13 +180,29 @@ func refreshSpecs(ctx context.Context, client consul.ConsulWatcher, serviceMeta 
 					// we create a lot of requests; by the time we get here ctx may be done
 					return ctx.Err()
 				}
-				services, _, err := client.Service(svc.Name, "", queryOpts.WithContext(ctx))
-				if err != nil {
-					return err
+
+				//if any tags in the service are in the allowlist - we filter in that service
+				tagFound := false
+				//if no tags are provided no filtering
+				if consulUpstreamDiscoverySettings.GetServiceTagsAllowlist() == nil || len(consulUpstreamDiscoverySettings.GetServiceTagsAllowlist()) == 0 {
+					tagFound = true
 				}
 
-				specs.Add(services)
+				for _, tag := range consulUpstreamDiscoverySettings.GetServiceTagsAllowlist() {
+					if tagFound {
+						//if tag has been found we are filtered in and no longer need to check other tags
+						break
+					}
+					tagFound = slices.Contains(svc.Tags, tag)
+				}
 
+				if tagFound {
+					services, _, err := client.Service(svc.Name, "", queryOpts.WithContext(ctx))
+					if err != nil {
+						return err
+					}
+					specs.Add(services)
+				}
 				return nil
 			})
 		}

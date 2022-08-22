@@ -1283,14 +1283,15 @@ func (m *Settings_ConsulUpstreamDiscoveryConfiguration) Equal(that interface{}) 
 		}
 	}
 
-	if h, ok := interface{}(m.GetServiceFilter()).(equality.Equalizer); ok {
-		if !h.Equal(target.GetServiceFilter()) {
+	if len(m.GetServiceTagsAllowlist()) != len(target.GetServiceTagsAllowlist()) {
+		return false
+	}
+	for idx, v := range m.GetServiceTagsAllowlist() {
+
+		if strings.Compare(v, target.GetServiceTagsAllowlist()[idx]) != 0 {
 			return false
 		}
-	} else {
-		if !proto.Equal(m.GetServiceFilter(), target.GetServiceFilter()) {
-			return false
-		}
+
 	}
 
 	return true

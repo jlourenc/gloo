@@ -3,7 +3,6 @@ package e2e_test
 import (
 	"context"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"io/ioutil"
 	"net/http"
 
@@ -89,8 +88,9 @@ var _ = Describe("Consul e2e", func() {
 			},
 			Settings: &gloov1.Settings{
 				ConsulDiscovery: &gloov1.Settings_ConsulUpstreamDiscoveryConfiguration{
-					ServiceFilter: &wrappers.StringValue{
-						Value: `Meta.env == "production"`,
+					ServiceTagsAllowlist: []string{
+						"1",
+						"2",
 					},
 				},
 			},
