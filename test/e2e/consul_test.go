@@ -108,6 +108,12 @@ var _ = Describe("Consul e2e", func() {
 		Expect(err).NotTo(HaveOccurred())
 		err = consulInstance.RegisterService("my-svc", "my-svc-2", envoyInstance.GlooAddr, []string{"svc", "2"}, svc2.Port)
 		Expect(err).NotTo(HaveOccurred())
+
+		for i := 3; i < 500; i++ {
+			update := i == 499
+			err = consulInstance.RegisterServiceWithUpdate(fmt.Sprintf("my-svc-%v", i), fmt.Sprintf("my-svc-%v", i), envoyInstance.GlooAddr, []string{"svc", fmt.Sprintf("%v", i)}, svc2.Port, update)
+			Expect(err).NotTo(HaveOccurred())
+		}
 	})
 
 	AfterEach(func() {
@@ -119,7 +125,7 @@ var _ = Describe("Consul e2e", func() {
 		cancel()
 	})
 
-	It("works as expected", func() {
+	FIt("works as expected", func() {
 		_, err := testClients.ProxyClient.Write(getProxyWithConsulRoute(writeNamespace, envoyPort), clients.WriteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
 

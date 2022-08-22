@@ -196,6 +196,10 @@ func (i *ConsulInstance) Clean() error {
 }
 
 func (i *ConsulInstance) RegisterService(svcName, svcId, address string, tags []string, port uint32) error {
+	return i.RegisterServiceWithUpdate(svcName, svcId, address, tags, port, true)
+}
+
+func (i *ConsulInstance) RegisterServiceWithUpdate(svcName, svcId, address string, tags []string, port uint32, update bool) error {
 	svcDef := &serviceDef{
 		Service: &consulService{
 			ID:      svcId,
@@ -207,6 +211,10 @@ func (i *ConsulInstance) RegisterService(svcName, svcId, address string, tags []
 	}
 
 	i.registeredServices[svcId] = svcDef
+
+	if !update {
+		return nil
+	}
 
 	err := i.AddConfigFromStruct(svcId, svcDef)
 	if err != nil {
