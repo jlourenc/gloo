@@ -139,6 +139,25 @@ var _ = Describe("CSRF", func() {
 		return envoyStats
 	}
 
+	getEnvoyStatsAndAssert := func(expectedStatsMatcher types.GomegaMatcher) {
+		By("Get stats")
+		EventuallyWithOffset(1, func() (string, error) {
+			statsUrl := fmt.Sprintf("http://%s:%d/stats",
+				envoyInstance.LocalAddr(),
+				envoyInstance.AdminPort)
+			r, err := http.Get(statsUrl)
+			if err != nil {
+				return "", err
+			}
+			p := new(bytes.Buffer)
+			if _, err := io.Copy(p, r.Body); err != nil {
+				return "", err
+			}
+			defer r.Body.Close()
+			return p.String(), nil
+		}, "10s", ".1s").Should(expectedStatsMatcher)
+	}
+
 	checkProxy := func() {
 		// ensure the proxy and virtual service are created
 		Eventually(func() (*gloov1.Proxy, error) {
@@ -206,13 +225,15 @@ var _ = Describe("CSRF", func() {
 				checkVirtualService(testVs)
 			})
 
-			It("should succeed with allowed origin", func() {
+			FIt("should succeed with allowed origin", func() {
 				spoofedRequest := buildRequestFromOrigin(allowedOrigin)
 				Eventually(spoofedRequest, 10*time.Second, 1*time.Second).Should(validOriginResponseMatcher)
 
-				statistics := getEnvoyStats()
-				Expect(statistics).To(matchInvalidRequestEqualTo(0))
-				Expect(statistics).To(matchValidRequestEqualTo(1))
+				// still saw this timeout once at 10s! need to run until fails.. envoy stats has race?
+
+				// https://console.cloud.google.com/cloud-build/builds;region=global/159f132f-7bd0-416f-9f57-1a11cce91e35;step=10?project=solo-public
+				getEnvoyStatsAndAssert(matchInvalidRequestEqualTo(0))
+				getEnvoyStatsAndAssert(matchValidRequestEqualTo(1))
 			})
 
 			It("should fail with un-allowed origin", func() {
