@@ -14,10 +14,17 @@ jobs:
         with:
           project-url: https://github.com/orgs/solo-io/projects/22
           github-token: ${{ secrets.ORG_CROSS_REPO_DEUX }}
-          labeled: "Type: Enhancement,Type: Bug"
+          labeled: "Type: Enhancement,Type: Bug,vulnerability"
           label-operator: OR
       - uses: actions/add-to-project@main
         with:
           project-url: https://github.com/orgs/solo-io/projects/24
           github-token: ${{ secrets.ORG_CROSS_REPO_DEUX }}
           labeled: "Type: Docs"
+      - uses: alex-page/github-project-automation-plus@bb266ff4dde9242060e2d5418e120a133586d488
+        if: ${{ github.event.label.name == 'vulnerability' }}
+        with:
+          project: Gloo Edge
+          column: Current Sprint
+          repo-token: ${{ secrets.ORG_CROSS_REPO_DEUX }}
+
